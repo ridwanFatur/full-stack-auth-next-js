@@ -2,46 +2,30 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CredentialResponse } from "@react-oauth/google";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { isAuthenticated } from "@/lib/auth/session";
 
-// Inner component that reads search params — must be inside Suspense
+// Inner component uses useSearchParams — must live inside a Suspense boundary
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect already-authenticated users
+  // Redirect already-authenticated users away from login
   useEffect(() => {
     if (isAuthenticated()) {
       router.replace("/");
     }
   }, [router]);
 
-  // Show error from OAuth callback (e.g. ?error=auth_failed)
+  // Show error message returned by the OAuth callback (e.g. ?error=auth_failed)
   useEffect(() => {
     const errorParam = searchParams.get("error");
     if (errorParam === "auth_failed") {
       setError("Google authentication failed. Please try again.");
     }
   }, [searchParams]);
-
-  const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) {
-      setError("No credential received from Google. Please try again.");
-      return;
-    }
-
-    // Temporarily store the Google ID token; /redirect/login will pick it up
-    sessionStorage.setItem("google_credential", credentialResponse.credential);
-    router.push("/redirect/login");
-  };
-
-  const handleGoogleError = () => {
-    setError("Google sign-in was cancelled or failed. Please try again.");
-  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
@@ -61,15 +45,10 @@ function LoginContent() {
           </div>
         )}
 
-        {/* Google Login Button */}
-        <div className="flex flex-col items-center gap-4">
-          <GoogleLoginButton
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleError}
-          />
-        </div>
+        {/* Google Login — full-page redirect, no popup */}
+        <GoogleLoginButton />
 
-        {/* Footer note */}
+        {/* Footer */}
         <p className="mt-8 text-center text-xs text-gray-400">
           By signing in you agree to our terms and privacy policy.
         </p>
@@ -78,7 +57,7 @@ function LoginContent() {
   );
 }
 
-// Suspense wrapper required by Next.js when using useSearchParams
+// Suspense is required by Next.js whenever useSearchParams is used in a page
 export default function LoginPage() {
   return (
     <Suspense

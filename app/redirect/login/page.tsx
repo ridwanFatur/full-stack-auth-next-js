@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { saveSession } from "@/lib/auth/session";
 import { AuthTokens } from "@/lib/auth/types";
-import api from "@/lib/api/axios";
 
-export default function RedirectLoginPage() {
+// Inner component reads search params — must live inside a Suspense boundary
+function RedirectLoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const processed = useRef(false);
 
   useEffect(() => {
@@ -16,35 +17,43 @@ export default function RedirectLoginPage() {
     if (processed.current) return;
     processed.current = true;
 
-    const handleCallback = async () => {
-      // Read the Google credential stored by the login page
-      const credential = sessionStorage.getItem("google_credential");
-      sessionStorage.removeItem("google_credential");
+    const code = searchParams.get("code");
+    const state = searchParams.get("state");
+    const oauthError = searchParams.get("error");
 
-      if (!credential) {
-        // No credential — redirect back to login
-        router.replace("/login");
-        return;
-      }
+    // Google returned an error (e.g. user denied consent)
+    if (oauthError || !code || !state) {
+      router.replace("/login?error=auth_failed");
+      return;
+    }
 
+    const exchange = async () => {
       try {
-        const response = await api.post<AuthTokens>("/api/v1/auth/google/login", {
-          id_token: credential,
+        // POST to our server-side route handler — credentials never touch the browser
+        const res = await fetch("/api/auth/exchange", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, state }),
         });
 
-        // Persist tokens and user info
-        saveSession(response.data);
+        if (!res.ok) {
+          throw new Error("Exchange failed");
+        }
 
-        // Navigate to the home page
+        const data: AuthTokens = await res.json();
+
+        // Persist JWT tokens and user profile
+        saveSession(data);
+
+        // Navigate to the protected home page
         router.replace("/");
       } catch {
-        // Authentication failed — send back to login with error flag
         router.replace("/login?error=auth_failed");
       }
     };
 
-    handleCallback();
-  }, [router]);
+    exchange();
+  }, [router, searchParams]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50">
@@ -53,5 +62,20 @@ export default function RedirectLoginPage() {
         <p className="text-sm text-gray-500">Signing you in…</p>
       </div>
     </div>
+  );
+}
+
+// Suspense is required by Next.js whenever useSearchParams is used in a page
+export default function RedirectLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+          <LoadingSpinner size="lg" />
+        </div>
+      }
+    >
+      <RedirectLoginContent />
+    </Suspense>
   );
 }
