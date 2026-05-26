@@ -231,6 +231,30 @@ Guidelines:
 - Responsive design
 - Minimal styling
 
+**Button cursor rule (enforced):**
+
+Every `<button>` element must include `cursor-pointer` in its Tailwind class list.
+
+```tsx
+// ✅ Correct
+<button className="cursor-pointer ...">Click me</button>
+
+// ❌ Wrong — missing cursor-pointer
+<button className="...">Click me</button>
+```
+
+When a button is disabled, also add `disabled:cursor-not-allowed` so the cursor
+changes correctly in the disabled state:
+
+```tsx
+<button
+  disabled={loading}
+  className="cursor-pointer ... disabled:cursor-not-allowed disabled:opacity-60"
+>
+  Submit
+</button>
+```
+
 Avoid:
 
 - Heavy animations

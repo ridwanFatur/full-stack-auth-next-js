@@ -6,24 +6,18 @@ interface ExchangeRequest {
   state: string;
 }
 
-interface GoogleTokenResponse {
-  id_token?: string;
-  access_token?: string;
-  error?: string;
-  error_description?: string;
-}
-
 /**
  * POST /api/auth/exchange
  *
- * Server-side handler that:
- *  1. Verifies the CSRF state token stored in the httpOnly cookie.
- *  2. Exchanges the Google authorization code for tokens via Google's token endpoint.
- *  3. Extracts the ID token from Google's response.
- *  4. Forwards the ID token to the FastAPI backend for verification and JWT issuance.
- *  5. Returns the FastAPI response (access_token, refresh_token, user) to the client.
+ * Thin proxy between the OAuth callback page and the FastAPI backend.
  *
- * No Google credentials are ever exposed to the browser.
+ * Responsibilities:
+ *  1. Verify the CSRF state against the httpOnly cookie set in /api/auth/google.
+ *  2. Forward the authorization code to the FastAPI backend.
+ *  3. Return the backend's JWT response (access_token, refresh_token, user).
+ *
+ * The code exchange with Google (requiring GOOGLE_CLIENT_SECRET) happens
+ * entirely inside FastAPI — this handler never touches any Google credential.
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Parse request body
@@ -43,60 +37,32 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // Verify CSRF state against the httpOnly cookie
+  // Verify CSRF state against the httpOnly cookie (one-time use)
   const cookieStore = await cookies();
   const savedState = cookieStore.get("oauth_state")?.value;
-
-  // Always delete the state cookie after reading it (one-time use)
   cookieStore.delete("oauth_state");
 
   if (!savedState || savedState !== state) {
     return NextResponse.json(
-      { error: "Invalid OAuth state. Request may have been tampered with." },
+      { error: "Invalid OAuth state. The request may have been tampered with." },
       { status: 400 }
     );
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  if (!clientId || !clientSecret || !redirectUri || !apiUrl) {
+  if (!apiUrl) {
     return NextResponse.json(
-      { error: "Server OAuth configuration is incomplete." },
+      { error: "API URL is not configured." },
       { status: 500 }
     );
   }
 
-  // Exchange authorization code with Google
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      code,
-      client_id: clientId,
-      client_secret: clientSecret,
-      redirect_uri: redirectUri,
-      grant_type: "authorization_code",
-    }),
-  });
-
-  const googleTokens: GoogleTokenResponse = await tokenRes.json();
-
-  if (!tokenRes.ok || !googleTokens.id_token) {
-    console.error("Google token exchange failed:", googleTokens);
-    return NextResponse.json(
-      { error: googleTokens.error_description ?? "Failed to exchange code with Google." },
-      { status: 400 }
-    );
-  }
-
-  // Forward the ID token to the FastAPI backend for verification and JWT issuance
-  const backendRes = await fetch(`${apiUrl}/api/v1/auth/google/login`, {
+  // Forward the authorization code to the FastAPI backend.
+  // The backend handles the Google code↔token exchange using its own credentials.
+  const backendRes = await fetch(`${apiUrl}/api/v1/auth/google/callback`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id_token: googleTokens.id_token }),
+    body: JSON.stringify({ code }),
   });
 
   const authData = await backendRes.json();

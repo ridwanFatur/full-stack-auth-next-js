@@ -1,34 +1,44 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import crypto from "crypto";
 
 /**
  * GET /api/auth/google
  *
- * Constructs the Google OAuth 2.0 authorization URL server-side and redirects
- * the browser to Google's consent screen.
+ * Fetches the Google OAuth authorization URL from the FastAPI backend, stores
+ * the CSRF state in an httpOnly cookie, then redirects the browser to Google.
  *
- * GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are never sent to the browser —
- * they live only in server-side environment variables (no NEXT_PUBLIC_ prefix).
- *
- * A random CSRF state token is generated, stored in an httpOnly cookie, and
- * included in the OAuth URL. It will be verified in /api/auth/exchange.
+ * The frontend holds zero Google credentials — all OAuth config lives in the
+ * backend environment. The only frontend env variable needed is NEXT_PUBLIC_API_URL.
  */
 export async function GET(): Promise<NextResponse> {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-  if (!clientId || !redirectUri) {
+  if (!apiUrl) {
     return NextResponse.json(
-      { error: "Google OAuth is not configured on this server." },
+      { error: "API URL is not configured." },
       { status: 500 }
     );
   }
 
-  // Generate a random CSRF state token
-  const state = crypto.randomBytes(32).toString("hex");
+  // Ask the backend to generate the auth URL + CSRF state
+  let url: string;
+  let state: string;
 
-  // Persist state in an httpOnly cookie (10-minute window)
+  try {
+    const res = await fetch(`${apiUrl}/api/v1/auth/google/auth-url`);
+    if (!res.ok) {
+      throw new Error(`Backend responded with ${res.status}`);
+    }
+    ({ url, state } = await res.json());
+  } catch (err) {
+    console.error("Failed to fetch Google auth URL from backend:", err);
+    return NextResponse.json(
+      { error: "Failed to initiate Google sign-in. Please try again." },
+      { status: 502 }
+    );
+  }
+
+  // Store the CSRF state in an httpOnly cookie (10-minute window)
   const cookieStore = await cookies();
   cookieStore.set("oauth_state", state, {
     httpOnly: true,
@@ -38,17 +48,5 @@ export async function GET(): Promise<NextResponse> {
     path: "/",
   });
 
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: "code",
-    scope: "openid email profile",
-    access_type: "offline",
-    state,
-    prompt: "select_account",
-  });
-
-  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-
-  return NextResponse.redirect(googleAuthUrl);
+  return NextResponse.redirect(url);
 }
