@@ -1,0 +1,81 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import MainLayout from "@/components/layout/MainLayout";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import CompanyForm from "@/components/companies/CompanyForm";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { getUser } from "@/lib/auth/session";
+import { AuthUser } from "@/lib/auth/types";
+import { companiesApi } from "@/lib/api/companies";
+import { Company, CompanyCreate, CompanyUpdate } from "@/lib/types/hr";
+
+export default function EditCompanyPage() {
+  const ready = useAuthGuard();
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!ready) return;
+    setUser(getUser());
+
+    companiesApi
+      .get(params.id)
+      .then(setCompany)
+      .catch(() => router.replace("/companies"))
+      .finally(() => setLoading(false));
+  }, [ready, params.id, router]);
+
+  const handleSubmit = async (data: CompanyCreate | CompanyUpdate) => {
+    const updated = await companiesApi.update(params.id, data as CompanyUpdate);
+    router.push(`/companies/${updated.id}`);
+  };
+
+  if (!ready || loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!company) return null;
+
+  return (
+    <MainLayout user={user}>
+      {/* Breadcrumb */}
+      <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500">
+        <Link href="/companies" className="hover:text-gray-700">
+          Companies
+        </Link>
+        <span>/</span>
+        <Link href={`/companies/${company.id}`} className="hover:text-gray-700">
+          {company.name}
+        </Link>
+        <span>/</span>
+        <span className="font-medium text-gray-900">Edit</span>
+      </nav>
+
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">Edit Company</h1>
+          <p className="mt-1 text-sm text-gray-500">Update {company.name}&apos;s details.</p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
+          <CompanyForm
+            initial={company}
+            onSubmit={handleSubmit}
+            onCancel={() => router.push(`/companies/${company.id}`)}
+            submitLabel="Save Changes"
+          />
+        </div>
+      </div>
+    </MainLayout>
+  );
+}

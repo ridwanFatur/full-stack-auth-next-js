@@ -10,31 +10,57 @@ import { isAuthenticated } from "@/lib/auth/session";
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Start in "initializing" state — show spinner until we know auth status.
+  // This prevents the login form from flashing for authenticated users.
+  const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect already-authenticated users away from login
   useEffect(() => {
     if (isAuthenticated()) {
+      // User is already logged in — redirect without ever showing the form
       router.replace("/");
+      return;
     }
-  }, [router]);
 
-  // Show error message returned by the OAuth callback (e.g. ?error=auth_failed)
-  useEffect(() => {
+    // Not authenticated: check for error query param then reveal the form
     const errorParam = searchParams.get("error");
     if (errorParam === "auth_failed") {
       setError("Google authentication failed. Please try again.");
     }
-  }, [searchParams]);
+    setInitializing(false);
+  }, [router, searchParams]);
+
+  if (initializing) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900">Welcome back</h1>
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600">
+            <svg
+              className="h-6 w-6 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-semibold text-gray-900">HR Manager</h1>
           <p className="mt-2 text-sm text-gray-500">
-            Sign in to continue to your account
+            Sign in to manage your companies and employees
           </p>
         </div>
 
