@@ -151,14 +151,7 @@ export default function ProfilePage() {
               <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <InfoRow label="Full Name" value={user.full_name} />
                 <InfoRow label="Email Address" value={user.email} />
-                <InfoRow label="Account ID" value={user.id.slice(0, 8) + "…"} mono />
-                <InfoRow label="Auth Provider" value="Google OAuth" />
               </dl>
-            </div>
-
-            {/* Info note */}
-            <div className="mt-8 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700 ring-1 ring-blue-100">
-              <strong>Note:</strong> Your name and email are managed through your Google account. To update them, please change your Google profile.
             </div>
           </div>
         </div>
