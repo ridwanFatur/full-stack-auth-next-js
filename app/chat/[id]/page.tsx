@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -15,6 +15,10 @@ interface Props {
 
 /**
  * /chat/[id] — Full chat page with sidebar + chat interface.
+ *
+ * Two distinct loading modes:
+ *  - `loading`      — initial page load (full-screen spinner; sidebar not yet available)
+ *  - `chatLoading`  — switching between chats (sidebar stays visible; only content area shows spinner)
  */
 export default function ChatPage({ params }: Props) {
   const { id: chatId } = use(params);
@@ -23,29 +27,52 @@ export default function ChatPage({ params }: Props) {
 
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<ChatDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);        // initial page load
+  const [chatLoading, setChatLoading] = useState(false); // per-chat switch
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Load sidebar list + active chat detail in parallel
+  // Track whether this is the first load (initial page visit) vs. a chat switch
+  const isFirstLoadRef = useRef(true);
+
   useEffect(() => {
     if (!ready || !chatId) return;
 
-    setLoading(true);
-    Promise.all([
-      chatsApi.list(),
-      chatsApi.get(chatId).catch(() => null),
-    ])
-      .then(([listRes, detail]) => {
-        setChats(listRes.items);
-        if (!detail) {
-          // Chat not found or access denied — redirect to chat index
-          router.replace("/chat");
-          return;
-        }
-        setActiveChat(detail);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    if (isFirstLoadRef.current) {
+      // ── Initial load ──────────────────────────────────────────────────
+      isFirstLoadRef.current = false;
+      setLoading(true);
+      Promise.all([
+        chatsApi.list(),
+        chatsApi.get(chatId).catch(() => null),
+      ])
+        .then(([listRes, detail]) => {
+          setChats(listRes.items);
+          if (!detail) {
+            router.replace("/chat");
+            return;
+          }
+          setActiveChat(detail);
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    } else {
+      // ── Chat switch ───────────────────────────────────────────────────
+      // Clear current chat and show a spinner only in the content area so
+      // the sidebar remains visible and navigation feels instantaneous.
+      setActiveChat(null);
+      setChatLoading(true);
+      chatsApi
+        .get(chatId)
+        .then((detail) => {
+          if (!detail) {
+            router.replace("/chat");
+            return;
+          }
+          setActiveChat(detail);
+        })
+        .catch(() => router.replace("/chat"))
+        .finally(() => setChatLoading(false));
+    }
   }, [ready, chatId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTitleChange = (title: string) => {
@@ -56,6 +83,7 @@ export default function ChatPage({ params }: Props) {
     );
   };
 
+  // ── Initial full-screen load ──────────────────────────────────────────
   if (!ready || loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
@@ -76,8 +104,14 @@ export default function ChatPage({ params }: Props) {
 
       {/* Main chat area */}
       <div className="flex flex-1 flex-col overflow-hidden lg:pl-64">
-        {activeChat ? (
+        {chatLoading ? (
+          /* Switching chats — keep sidebar, show content-area spinner */
+          <div className="flex h-full items-center justify-center">
+            <LoadingSpinner size="md" />
+          </div>
+        ) : activeChat ? (
           <ChatInterface
+            key={activeChat.id}
             chat={activeChat}
             onTitleChange={handleTitleChange}
             mobileMenuOpen={mobileOpen}

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AuthUser } from "@/lib/auth/types";
 import { clearSession, getRefreshToken } from "@/lib/auth/session";
 import api from "@/lib/api/axios";
 import { cn } from "@/lib/utils/cn";
+import Dialog from "@/components/ui/Dialog";
 
 interface SidebarProps {
   user: AuthUser | null;
@@ -61,6 +62,8 @@ export default function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProp
   const pathname = usePathname();
   const router = useRouter();
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   // Close drawer on route change
   useEffect(() => {
@@ -77,6 +80,7 @@ export default function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProp
   }, [mobileOpen, onMobileClose]);
 
   const handleLogout = async () => {
+    setLoggingOut(true);
     try {
       const refreshToken = getRefreshToken();
       if (refreshToken) {
@@ -156,7 +160,7 @@ export default function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProp
             </div>
           </Link>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutDialog(true)}
             className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600"
           >
             <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,6 +199,43 @@ export default function Sidebar({ user, mobileOpen, onMobileClose }: SidebarProp
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-100 lg:bg-white">
         <SidebarContent />
       </aside>
+
+      {/* Sign-out confirmation dialog */}
+      <Dialog
+        open={showLogoutDialog}
+        onClose={() => !loggingOut && setShowLogoutDialog(false)}
+        closeOnBackdrop={!loggingOut}
+        title="Sign out"
+        description="Are you sure you want to sign out of HR Manager? You'll need to sign in again to access your data."
+        actions={
+          <>
+            <button
+              onClick={() => setShowLogoutDialog(false)}
+              disabled={loggingOut}
+              className="cursor-pointer rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loggingOut ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Signing out…
+                </>
+              ) : (
+                "Sign out"
+              )}
+            </button>
+          </>
+        }
+      />
     </>
   );
 }

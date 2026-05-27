@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Chatbot from "@/components/ui/Chatbot";
 import { AuthUser } from "@/lib/auth/types";
@@ -12,6 +13,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, user }: MainLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -44,7 +46,7 @@ export default function MainLayout({ children, user }: MainLayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main key={pathname} className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 animate-page-enter">
           {children}
         </main>
       </div>

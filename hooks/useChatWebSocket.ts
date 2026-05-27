@@ -137,6 +137,11 @@ export function useChatWebSocket({
       };
       setMessages((prev) => [...prev, userMsg]);
 
+      // Show typing indicator immediately — before the first chunk arrives
+      streamingRef.current = "";
+      setStreamingContent("");
+      setIsStreaming(true);
+
       wsRef.current.send(JSON.stringify({ message: text }));
     },
     [chatId, isStreaming]
