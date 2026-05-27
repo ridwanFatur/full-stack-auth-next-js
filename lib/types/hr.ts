@@ -21,7 +21,7 @@ export interface Company {
   state?: string | null;
   postal_code?: string | null;
   country?: string | null;
-  employee_count?: number | null;
+  employee_range?: string | null; // "1-10" | "10-50" | "50-100" | ">100"
   founded_at?: string | null; // ISO date string
   status: string;
   created_at: string;
@@ -45,7 +45,7 @@ export interface CompanyCreate {
   state?: string;
   postal_code?: string;
   country?: string;
-  employee_count?: number;
+  employee_range?: string;
   founded_at?: string;
   status?: string;
 }
@@ -111,5 +111,150 @@ export type EmployeeUpdate = Partial<EmployeeCreate>;
 
 export interface EmployeeListResponse {
   items: Employee[];
+  total: number;
+}
+
+// ============================================================
+// Attendance
+// ============================================================
+
+export interface Attendance {
+  id: string;
+  employee_id: string;
+  date: string; // ISO date
+  check_in?: string | null; // HH:MM:SS
+  check_out?: string | null;
+  status: string; // present | absent | late | on_leave | wfh
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AttendanceCreate {
+  date: string;
+  check_in?: string;
+  check_out?: string;
+  status?: string;
+  notes?: string;
+}
+
+export type AttendanceUpdate = Partial<AttendanceCreate>;
+
+export interface AttendanceListResponse {
+  items: Attendance[];
+  total: number;
+}
+
+// ============================================================
+// Leave
+// ============================================================
+
+export interface Leave {
+  id: string;
+  employee_id: string;
+  leave_type: string; // annual | sick | emergency | unpaid | maternity | paternity
+  start_date: string;
+  end_date: string;
+  reason?: string | null;
+  status: string; // pending | approved | rejected
+  approved_by?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaveCreate {
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  reason?: string;
+  status?: string;
+  approved_by?: string;
+  notes?: string;
+}
+
+export type LeaveUpdate = Partial<LeaveCreate>;
+
+export interface LeaveListResponse {
+  items: Leave[];
+  total: number;
+}
+
+// ============================================================
+// Payroll
+// ============================================================
+
+export interface Payroll {
+  id: string;
+  employee_id: string;
+  period_start: string;
+  period_end: string;
+  base_salary: number;
+  allowances: number;
+  deductions: number;
+  net_salary: number;
+  currency: string;
+  status: string; // pending | paid | cancelled
+  paid_at?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PayrollCreate {
+  period_start: string;
+  period_end: string;
+  base_salary: number;
+  allowances?: number;
+  deductions?: number;
+  currency?: string;
+  status?: string;
+  paid_at?: string;
+  notes?: string;
+}
+
+export type PayrollUpdate = Partial<PayrollCreate>;
+
+export interface PayrollListResponse {
+  items: Payroll[];
+  total: number;
+}
+
+// ============================================================
+// Performance
+// ============================================================
+
+export interface Performance {
+  id: string;
+  employee_id: string;
+  review_period: string;
+  rating?: number | null; // 1.0 – 5.0
+  goals?: string | null;
+  achievements?: string | null;
+  feedback?: string | null;
+  areas_for_improvement?: string | null;
+  reviewer?: string | null;
+  reviewed_at?: string | null;
+  status: string; // pending | completed
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PerformanceCreate {
+  review_period: string;
+  rating?: number;
+  goals?: string;
+  achievements?: string;
+  feedback?: string;
+  areas_for_improvement?: string;
+  reviewer?: string;
+  reviewed_at?: string;
+  status?: string;
+}
+
+export type PerformanceUpdate = Partial<PerformanceCreate>;
+
+export interface PerformanceListResponse {
+  items: Performance[];
   total: number;
 }

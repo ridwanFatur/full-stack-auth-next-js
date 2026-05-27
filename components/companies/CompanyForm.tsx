@@ -31,6 +31,7 @@ const INDUSTRIES = [
   "Other",
 ];
 
+const EMPLOYEE_RANGES = ["1-10", "10-50", "50-100", ">100"];
 const STATUS_OPTIONS = ["active", "inactive"];
 
 interface CompanyFormProps {
@@ -56,7 +57,7 @@ type FormState = {
   state: string;
   postal_code: string;
   country: string;
-  employee_count: string;
+  employee_range: string;
   founded_at: string;
   status: string;
 };
@@ -78,7 +79,7 @@ function toFormState(company?: Company): FormState {
     state: company?.state ?? "",
     postal_code: company?.postal_code ?? "",
     country: company?.country ?? "",
-    employee_count: company?.employee_count?.toString() ?? "",
+    employee_range: company?.employee_range ?? "",
     founded_at: company?.founded_at ?? "",
     status: company?.status ?? "active",
   };
@@ -125,9 +126,7 @@ export default function CompanyForm({
         state: form.state || undefined,
         postal_code: form.postal_code || undefined,
         country: form.country || undefined,
-        employee_count: form.employee_count
-          ? parseInt(form.employee_count)
-          : undefined,
+        employee_range: form.employee_range || undefined,
         founded_at: form.founded_at || undefined,
         status: form.status,
       };
@@ -201,9 +200,7 @@ export default function CompanyForm({
             >
               <option value="">Select type</option>
               {BUSINESS_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
           </div>
@@ -216,9 +213,7 @@ export default function CompanyForm({
             >
               <option value="">Select industry</option>
               {INDUSTRIES.map((i) => (
-                <option key={i} value={i}>
-                  {i}
-                </option>
+                <option key={i} value={i}>{i}</option>
               ))}
             </select>
           </div>
@@ -373,15 +368,17 @@ export default function CompanyForm({
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelCls}>Employee Count</label>
-            <input
-              type="number"
-              min={0}
+            <label className={labelCls}>Employee Range</label>
+            <select
               className={inputCls}
-              placeholder="50"
-              value={form.employee_count}
-              onChange={set("employee_count")}
-            />
+              value={form.employee_range}
+              onChange={set("employee_range")}
+            >
+              <option value="">Select range</option>
+              {EMPLOYEE_RANGES.map((r) => (
+                <option key={r} value={r}>{r} employees</option>
+              ))}
+            </select>
           </div>
         </div>
       </section>

@@ -5,7 +5,7 @@ import { Employee, EmployeeCreate, EmployeeUpdate } from "@/lib/types/hr";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const IDENTITY_TYPES = ["KTP", "Passport", "Driver License", "SIM", "Other"];
-const GENDERS = ["male", "female", "other"];
+const GENDERS = ["male", "female"];
 const EMPLOYMENT_STATUSES = ["active", "inactive", "on_leave", "terminated"];
 const CURRENCIES = ["USD", "IDR", "EUR", "GBP", "SGD", "MYR", "JPY", "AUD"];
 

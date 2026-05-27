@@ -216,6 +216,9 @@ export default function CompanyDetailPage() {
                   .join(", ")}
               />
             )}
+            {company.employee_range && (
+              <DetailItem label="Employee Range" value={`${company.employee_range} employees`} />
+            )}
           </div>
         </div>
 
