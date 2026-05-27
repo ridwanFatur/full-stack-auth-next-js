@@ -62,3 +62,11 @@ export function getUser(): AuthUser | null {
 export function isAuthenticated(): boolean {
   return !!getAccessToken();
 }
+
+/**
+ * Update the stored user profile (e.g. after avatar upload).
+ */
+export function updateUser(user: AuthUser): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEYS.USER, JSON.stringify(user));
+}
