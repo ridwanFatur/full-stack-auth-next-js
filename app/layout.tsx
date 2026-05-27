@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "App",
+  title: "HR Admin",
   description: "Full-stack application with Google OAuth",
 };
 
