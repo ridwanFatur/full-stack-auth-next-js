@@ -3,21 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Badge, { employmentStatusVariant } from "@/components/ui/Badge";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { getUser } from "@/lib/auth/session";
-import { AuthUser } from "@/lib/auth/types";
 import { companiesApi } from "@/lib/api/companies";
 import { employeesApi } from "@/lib/api/employees";
 import { Company, Employee } from "@/lib/types/hr";
 
 export default function EmployeesPage() {
-  const ready = useAuthGuard();
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [total, setTotal] = useState(0);
@@ -25,9 +19,6 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (!ready) return;
-    setUser(getUser());
-
     Promise.all([
       companiesApi.get(params.id),
       employeesApi.list(params.id, 0, 200),
@@ -39,11 +30,11 @@ export default function EmployeesPage() {
       })
       .catch(() => router.replace("/companies"))
       .finally(() => setLoading(false));
-  }, [ready, params.id, router]);
+  }, [params.id, router]);
 
-  if (!ready || loading) {
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex justify-center py-24">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -57,7 +48,7 @@ export default function EmployeesPage() {
   );
 
   return (
-    <MainLayout user={user}>
+    <>
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm text-gray-400">
         <Link href="/companies" className="hover:text-gray-600 transition-colors">Companies</Link>
@@ -154,7 +145,7 @@ export default function EmployeesPage() {
           </Link>
         </div>
       )}
-    </MainLayout>
+    </>
   );
 }
 

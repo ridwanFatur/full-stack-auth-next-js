@@ -3,23 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import EmployeeCard from "@/components/employees/EmployeeCard";
 import Badge, { companyStatusVariant } from "@/components/ui/Badge";
 import Dialog from "@/components/ui/Dialog";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { getUser } from "@/lib/auth/session";
-import { AuthUser } from "@/lib/auth/types";
 import { companiesApi } from "@/lib/api/companies";
 import { employeesApi } from "@/lib/api/employees";
 import { Company, Employee } from "@/lib/types/hr";
 
 export default function CompanyDetailPage() {
-  const ready = useAuthGuard();
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [totalEmployees, setTotalEmployees] = useState(0);
@@ -30,9 +24,6 @@ export default function CompanyDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!ready) return;
-    setUser(getUser());
-
     const fetchData = async () => {
       try {
         const [comp, emp] = await Promise.all([
@@ -50,7 +41,7 @@ export default function CompanyDetailPage() {
     };
 
     fetchData();
-  }, [ready, params.id, router]);
+  }, [params.id, router]);
 
   const handleDeleteConfirm = async () => {
     if (!company) return;
@@ -78,9 +69,9 @@ export default function CompanyDetailPage() {
     }
   };
 
-  if (!ready || loading) {
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex justify-center py-24">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -89,7 +80,7 @@ export default function CompanyDetailPage() {
   if (!company) return null;
 
   return (
-    <MainLayout user={user}>
+    <>
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500">
         <Link href="/companies" className="hover:text-gray-700">
@@ -303,7 +294,7 @@ export default function CompanyDetailPage() {
           </>
         }
       />
-    </MainLayout>
+    </>
   );
 }
 

@@ -2,45 +2,29 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import CompanyCard from "@/components/companies/CompanyCard";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { getUser } from "@/lib/auth/session";
-import { AuthUser } from "@/lib/auth/types";
 import { companiesApi } from "@/lib/api/companies";
 import { Company } from "@/lib/types/hr";
 
 export default function CompaniesPage() {
-  const ready = useAuthGuard();
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!ready) return;
-    setUser(getUser());
-
     companiesApi
       .list(0, 100)
       .then((res) => {
         setCompanies(res.items);
         setTotal(res.total);
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, [ready]);
-
-  if (!ready) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+  }, []);
 
   return (
-    <MainLayout user={user}>
+    <>
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -104,6 +88,6 @@ export default function CompaniesPage() {
           </Link>
         </div>
       )}
-    </MainLayout>
+    </>
   );
 }

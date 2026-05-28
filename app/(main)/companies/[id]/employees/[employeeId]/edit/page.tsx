@@ -3,29 +3,20 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import EmployeeForm from "@/components/employees/EmployeeForm";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { getUser } from "@/lib/auth/session";
-import { AuthUser } from "@/lib/auth/types";
 import { companiesApi } from "@/lib/api/companies";
 import { employeesApi } from "@/lib/api/employees";
 import { Company, Employee, EmployeeCreate, EmployeeUpdate } from "@/lib/types/hr";
 
 export default function EditEmployeePage() {
-  const ready = useAuthGuard();
   const params = useParams<{ id: string; employeeId: string }>();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!ready) return;
-    setUser(getUser());
-
     Promise.all([
       companiesApi.get(params.id),
       employeesApi.get(params.id, params.employeeId),
@@ -36,16 +27,16 @@ export default function EditEmployeePage() {
       })
       .catch(() => router.replace(`/companies/${params.id}`))
       .finally(() => setLoading(false));
-  }, [ready, params.id, params.employeeId, router]);
+  }, [params.id, params.employeeId, router]);
 
   const handleSubmit = async (data: EmployeeCreate | EmployeeUpdate) => {
     const updated = await employeesApi.update(params.id, params.employeeId, data as EmployeeUpdate);
     router.push(`/companies/${params.id}/employees/${updated.id}`);
   };
 
-  if (!ready || loading) {
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex justify-center py-24">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -54,7 +45,7 @@ export default function EditEmployeePage() {
   if (!employee) return null;
 
   return (
-    <MainLayout user={user}>
+    <>
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500">
         <Link href="/companies" className="hover:text-gray-700">Companies</Link>
@@ -89,6 +80,6 @@ export default function EditEmployeePage() {
           />
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }

@@ -1,36 +1,21 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import MainLayout from "@/components/layout/MainLayout";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import CompanyForm from "@/components/companies/CompanyForm";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { getUser } from "@/lib/auth/session";
 import { companiesApi } from "@/lib/api/companies";
 import { CompanyCreate, CompanyUpdate } from "@/lib/types/hr";
 
 export default function NewCompanyPage() {
-  const ready = useAuthGuard();
   const router = useRouter();
-  const user = getUser();
 
   const handleSubmit = async (data: CompanyCreate | CompanyUpdate) => {
     const created = await companiesApi.create(data as CompanyCreate);
     router.push(`/companies/${created.id}`);
   };
 
-  if (!ready) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
   return (
-    <MainLayout user={user}>
+    <>
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500">
         <Link href="/companies" className="hover:text-gray-700">
@@ -56,6 +41,6 @@ export default function NewCompanyPage() {
           />
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }

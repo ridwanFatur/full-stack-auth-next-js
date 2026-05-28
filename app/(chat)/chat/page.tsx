@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import ChatSidebar from "@/components/chat/ChatSidebar";
 import { chatsApi } from "@/lib/api/chats";
@@ -15,7 +14,6 @@ import { Chat } from "@/lib/types/chat";
  * Otherwise shows an empty state with a "New Chat" button.
  */
 export default function ChatIndexPage() {
-  const ready = useAuthGuard();
   const router = useRouter();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +21,6 @@ export default function ChatIndexPage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    if (!ready) return;
     chatsApi
       .list()
       .then(({ items }) => {
@@ -34,9 +31,9 @@ export default function ChatIndexPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!ready || loading) {
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-900">
         <LoadingSpinner size="lg" />

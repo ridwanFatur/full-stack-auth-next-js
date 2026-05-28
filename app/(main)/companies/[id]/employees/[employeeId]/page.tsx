@@ -3,13 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Badge, { employmentStatusVariant } from "@/components/ui/Badge";
 import Dialog from "@/components/ui/Dialog";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { getUser } from "@/lib/auth/session";
-import { AuthUser } from "@/lib/auth/types";
 import { companiesApi } from "@/lib/api/companies";
 import { employeesApi } from "@/lib/api/employees";
 import { attendanceApi, leaveApi, payrollApi, performanceApi } from "@/lib/api/hr";
@@ -808,10 +804,8 @@ function InfoItem({ label, value, className = "" }: { label: string; value: Reac
 // ─────────────────────────────────────────────────────────────────────────── //
 
 export default function EmployeeDetailPage() {
-  const ready = useAuthGuard();
   const params = useParams<{ id: string; employeeId: string }>();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
@@ -820,8 +814,6 @@ export default function EmployeeDetailPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (!ready) return;
-    setUser(getUser());
     Promise.all([
       companiesApi.get(params.id),
       employeesApi.get(params.id, params.employeeId),
@@ -829,7 +821,7 @@ export default function EmployeeDetailPage() {
       .then(([comp, emp]) => { setCompany(comp); setEmployee(emp); })
       .catch(() => router.replace(`/companies/${params.id}`))
       .finally(() => setLoading(false));
-  }, [ready, params.id, params.employeeId, router]);
+  }, [params.id, params.employeeId, router]);
 
   const handleDeleteConfirm = async () => {
     if (!employee) return;
@@ -842,9 +834,9 @@ export default function EmployeeDetailPage() {
     }
   };
 
-  if (!ready || loading) {
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex justify-center py-24">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -852,7 +844,7 @@ export default function EmployeeDetailPage() {
   if (!employee) return null;
 
   return (
-    <MainLayout user={user}>
+    <>
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm text-gray-400">
         <Link href="/companies" className="hover:text-gray-600 transition-colors">Companies</Link>
@@ -974,6 +966,6 @@ export default function EmployeeDetailPage() {
           </>
         }
       />
-    </MainLayout>
+    </>
   );
 }

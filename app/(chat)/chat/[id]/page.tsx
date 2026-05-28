@@ -2,7 +2,6 @@
 
 import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import ChatSidebar from "@/components/chat/ChatSidebar";
 import ChatInterface from "@/components/chat/ChatInterface";
@@ -22,7 +21,6 @@ interface Props {
  */
 export default function ChatPage({ params }: Props) {
   const { id: chatId } = use(params);
-  const ready = useAuthGuard();
   const router = useRouter();
 
   const [chats, setChats] = useState<Chat[]>([]);
@@ -35,7 +33,7 @@ export default function ChatPage({ params }: Props) {
   const isFirstLoadRef = useRef(true);
 
   useEffect(() => {
-    if (!ready || !chatId) return;
+    if (!chatId) return;
 
     if (isFirstLoadRef.current) {
       // ── Initial load ──────────────────────────────────────────────────
@@ -73,7 +71,7 @@ export default function ChatPage({ params }: Props) {
         .catch(() => router.replace("/chat"))
         .finally(() => setChatLoading(false));
     }
-  }, [ready, chatId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [chatId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTitleChange = (title: string) => {
     if (!activeChat) return;
@@ -84,7 +82,7 @@ export default function ChatPage({ params }: Props) {
   };
 
   // ── Initial full-screen load ──────────────────────────────────────────
-  if (!ready || loading) {
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <LoadingSpinner size="lg" />

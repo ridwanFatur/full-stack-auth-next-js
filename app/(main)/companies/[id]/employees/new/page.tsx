@@ -3,50 +3,41 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import EmployeeForm from "@/components/employees/EmployeeForm";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
-import { getUser } from "@/lib/auth/session";
-import { AuthUser } from "@/lib/auth/types";
 import { companiesApi } from "@/lib/api/companies";
 import { employeesApi } from "@/lib/api/employees";
 import { Company, EmployeeCreate, EmployeeUpdate } from "@/lib/types/hr";
 
 export default function NewEmployeePage() {
-  const ready = useAuthGuard();
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!ready) return;
-    setUser(getUser());
-
     companiesApi
       .get(params.id)
       .then(setCompany)
       .catch(() => router.replace("/companies"))
       .finally(() => setLoading(false));
-  }, [ready, params.id, router]);
+  }, [params.id, router]);
 
   const handleSubmit = async (data: EmployeeCreate | EmployeeUpdate) => {
     const emp = await employeesApi.create(params.id, data as EmployeeCreate);
     router.push(`/companies/${params.id}/employees/${emp.id}`);
   };
 
-  if (!ready || loading) {
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex justify-center py-24">
         <LoadingSpinner size="lg" />
       </div>
     );
   }
 
   return (
-    <MainLayout user={user}>
+    <>
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500">
         <Link href="/companies" className="hover:text-gray-700">
@@ -80,6 +71,6 @@ export default function NewEmployeePage() {
           />
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }
