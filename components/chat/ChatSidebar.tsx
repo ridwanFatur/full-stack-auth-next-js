@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import { chatsApi } from "@/lib/api/chats";
 import { Chat } from "@/lib/types/chat";
+import Dialog from "@/components/ui/Dialog";
 
 interface ChatSidebarProps {
   activeChatId?: string;
@@ -28,6 +29,8 @@ export default function ChatSidebar({
   const [creating, setCreating] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -76,19 +79,27 @@ export default function ChatSidebar({
     }
   };
 
-  const handleDelete = async (chatId: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (chatId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm("Delete this chat? This cannot be undone.")) return;
+    setDeletingChatId(chatId);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingChatId) return;
+    setDeleteLoading(true);
     try {
-      await chatsApi.delete(chatId);
-      const remaining = chats.filter((c) => c.id !== chatId);
+      await chatsApi.delete(deletingChatId);
+      const remaining = chats.filter((c) => c.id !== deletingChatId);
       onChatsChange(remaining);
-      if (activeChatId === chatId) {
+      if (activeChatId === deletingChatId) {
         router.push(remaining.length > 0 ? `/chat/${remaining[0].id}` : "/chat");
       }
     } catch (err) {
       console.error("Failed to delete chat:", err);
+    } finally {
+      setDeleteLoading(false);
+      setDeletingChatId(null);
     }
   };
 
@@ -173,7 +184,7 @@ export default function ChatSidebar({
                           </svg>
                         </button>
                         <button
-                          onClick={(e) => handleDelete(chat.id, e)}
+                          onClick={(e) => handleDeleteClick(chat.id, e)}
                           className="cursor-pointer rounded p-1 text-gray-400 hover:bg-red-600 hover:text-white"
                           title="Delete"
                         >
@@ -218,6 +229,31 @@ export default function ChatSidebar({
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col">
         <SidebarContent />
       </aside>
+
+      <Dialog
+        open={deletingChatId !== null}
+        onClose={() => setDeletingChatId(null)}
+        title="Delete chat"
+        description="This chat and all its messages will be permanently deleted. This cannot be undone."
+        actions={
+          <>
+            <button
+              onClick={() => setDeletingChatId(null)}
+              disabled={deleteLoading}
+              className="cursor-pointer rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteConfirm}
+              disabled={deleteLoading}
+              className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {deleteLoading ? "Deleting…" : "Delete"}
+            </button>
+          </>
+        }
+      />
     </>
   );
 }
